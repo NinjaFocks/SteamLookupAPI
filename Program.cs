@@ -1,6 +1,8 @@
+using Microsoft.EntityFrameworkCore;
 using SteamLookupAPI.Config;
+using SteamLookupAPI.Database;
+using SteamLookupAPI.Model;
 using SteamLookupAPI.SteamController;
-using System.Configuration;
 
 internal class Program
 {
@@ -8,17 +10,18 @@ internal class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
-        // Add services to the container.
-
         builder.Services.AddControllers();
-        // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+        
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
 
+        builder.Services.AddDbContextFactory<LookupDbContext>(options => 
+            options.UseSqlServer("Data Source=DESKTOP-0ORVQ74;initial catalog=steam-lookup;integrated security=True;MultipleActiveResultSets=True;TrustServerCertificate=True"));
+
         builder.Services.AddSingleton<ISteamFactory, SteamFactory>();
+        builder.Services.AddSingleton<ILookupDbContextFactory, LookupDbContextFactory>();
 
         builder.Services.Configure<SteamConfig>(builder.Configuration.GetSection("SteamConfig"));
-        builder.Services.Configure<ElasticConfig>(builder.Configuration.GetSection("ElasticConfig"));
 
         builder.Services.AddResponseCaching();
 
@@ -36,9 +39,30 @@ internal class Program
         app.UseAuthorization();
 
         app.MapControllers();
-
         app.UseResponseCaching();
 
+        CreateDbIfNotExists(app);
+
+        app.UseMiddleware<SaveQueryMiddleware>();
+
         app.Run();
+    }
+
+    private static void CreateDbIfNotExists(IApplicationBuilder appBuilder)
+    {
+        using (var scope = appBuilder.ApplicationServices.CreateScope())
+        {
+            var services = scope.ServiceProvider;
+            try
+            {
+                var context = services.GetRequiredService<LookupDbContext>();
+                DbInitialiser.Initialize(context);
+            }
+            catch (Exception ex)
+            {
+                var logger = services.GetRequiredService<ILogger<Program>>();
+                logger.LogError(ex, "An error occurred creating the DB.");
+            }
+        }
     }
 }
