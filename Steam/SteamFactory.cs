@@ -1,74 +1,45 @@
 ﻿using Microsoft.Extensions.Options;
-using Nest;
 using SteamLookupAPI.Config;
-using SteamLookupAPI.Model;
+using SteamLookupAPI.Database;
 using SteamWebAPI2.Interfaces;
 using SteamWebAPI2.Utilities;
-using System.Net;
-using System.Security;
 
 namespace SteamLookupAPI.SteamController;
 
 public class SteamFactory : ISteamFactory
 {
     private readonly SteamUser _steamUserInfo;
-    private readonly ElasticClient _elastic;
+    private readonly ILookupDbContextFactory _dbContext;
 
-    public SteamFactory(IOptions<SteamConfig> steamConfigOptions, 
-        IOptions<ElasticConfig> elasticConfigOptions)
+    public SteamFactory(IOptions<SteamConfig> steamConfigOptions, ILookupDbContextFactory dbContext)
     {
         var steamKey = steamConfigOptions.Value.SteamWebApiKey;
 
         var factory = new SteamWebInterfaceFactory(steamKey);
 
         _steamUserInfo = factory.CreateSteamWebInterface<SteamUser>();
-
-        //var secureString = new NetworkCredential("", elasticConfigOptions.Value.ApiKey).SecurePassword;
-        var elasticSettings = new ConnectionSettings(new Uri(elasticConfigOptions.Value.ElasticUri))
-            .DefaultIndex(elasticConfigOptions.Value.DefaultIndex)
-            //.ApiKeyAuthentication("id", secureString)
-            .PrettyJson();
-            
-
-        _elastic = new ElasticClient(elasticSettings);
+        
+        _dbContext = dbContext;
     }
 
-    public async Task<string> GetUserStatus(ulong userId)
-    {
+    public async Task<string> GetUserStatusAsync(ulong userId)
+    {        
         var result = await _steamUserInfo.GetPlayerSummaryAsync(userId);
 
         var status = result.Data.UserStatus.ToString();
 
-        UpdateUserRecord(userId, status);
+        await _dbContext.UpdateUserRecordAsync(userId, status: status);
 
         return status;
     }
 
-    public async Task<DateTime> GetUserCreatedDate(ulong userId)
+    public async Task<DateTime> GetUserCreatedDateAsync(ulong userId)
     {
         var result = await _steamUserInfo.GetPlayerSummaryAsync(userId);
+        var createdDate = result.Data.AccountCreatedDate;
 
-        return result.Data.AccountCreatedDate;
-    }
+        await _dbContext.UpdateUserRecordAsync(userId, createdDate: createdDate);
 
-    private async void UpdateUserRecord(ulong userId, string? status = null, DateTime? createdDate = null)
-    {
-        var user = new User
-        {
-            Id = userId,
-            Status = status,
-            CreatedDate = createdDate
-        };
-
-        var indexResponse = await _elastic.IndexDocumentAsync(user);
-
-        if (indexResponse != null && indexResponse.IsValid)
-        {
-            return;
-        }
-        else
-        {
-            throw new Exception("Failed to index record");
-        }
-    }
+        return createdDate;
+    }    
 }

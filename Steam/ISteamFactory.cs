@@ -2,7 +2,7 @@
 
 public interface ISteamFactory
 {
-    Task<string> GetUserStatus(ulong userId);
+    Task<string> GetUserStatusAsync(ulong userId);
 
-    Task<DateTime> GetUserCreatedDate(ulong userId);
+    Task<DateTime> GetUserCreatedDateAsync(ulong userId);
 }
