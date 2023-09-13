@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using SteamLookupAPI.Config;
 using SteamLookupAPI.Database;
+using SteamLookupAPI.Middleware;
 using SteamLookupAPI.Model;
+using SteamLookupAPI.Steam;
 using SteamLookupAPI.SteamController;
 
 internal class Program
@@ -20,7 +22,8 @@ internal class Program
 
         builder.Services.AddSingleton<ISteamFactory, SteamFactory>();
         builder.Services.AddSingleton<ILookupDbContextFactory, LookupDbContextFactory>();
-
+        builder.Services.AddSingleton<ISteamUserInterfaceProcessor, SteamUserInterfaceProcessor>();
+        
         builder.Services.Configure<SteamConfig>(builder.Configuration.GetSection("SteamConfig"));
 
         builder.Services.AddResponseCaching();

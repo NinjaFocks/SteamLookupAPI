@@ -2,7 +2,7 @@
 using SteamLookupAPI.Model;
 using System.Text.Json;
 
-namespace SteamLookupAPI.Database;
+namespace SteamLookupAPI.Middleware;
 
 public class SaveQueryMiddleware
 {

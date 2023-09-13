@@ -1,8 +1,8 @@
-﻿namespace SteamLookupAPI.SteamController;
+﻿using SteamWebAPI2.Interfaces;
+
+namespace SteamLookupAPI.SteamController;
 
 public interface ISteamFactory
 {
-    Task<string> GetUserStatusAsync(ulong userId);
-
-    Task<DateTime> GetUserCreatedDateAsync(ulong userId);
+    SteamUser GetSteamUserInterface();
 }
