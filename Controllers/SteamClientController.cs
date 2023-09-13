@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using SteamLookupAPI.SteamController;
-using System.Text.Json;
+using SteamLookupAPI.Steam;
 
 namespace SteamLookupAPI.Controllers;
 
@@ -8,25 +7,25 @@ namespace SteamLookupAPI.Controllers;
 [Route("user")]
 public class SteamClientController : Controller
 {
-    private readonly ISteamFactory _steamFactory;
+    private readonly ISteamUserInterfaceProcessor _steamUserProcessor;
     
-    public SteamClientController(ISteamFactory steamFactory)
+    public SteamClientController(ISteamUserInterfaceProcessor steamUserProcessor)
     {
-        _steamFactory = steamFactory;        
+        _steamUserProcessor = steamUserProcessor;        
     }
 
     [HttpGet("/status")]
     [ResponseCache(Duration = 30, VaryByQueryKeys = new[] { "*" })]
     public async Task<string> GetUserStatus([FromQuery] UserQuery query)
     {
-        return await _steamFactory.GetUserStatusAsync(query.UserId);
+        return await _steamUserProcessor.GetUserStatusAsync(query.UserId);
     }
 
     [HttpGet("/createdDate")]
     [ResponseCache(Duration = 3600, VaryByQueryKeys = new[] { "*" })]
     public async Task<DateTime> GetUserCreatedDate([FromQuery] UserQuery query)
     {
-        return await _steamFactory.GetUserCreatedDateAsync(query.UserId);
+        return await _steamUserProcessor.GetUserCreatedDateAsync(query.UserId);
     }
 }
 
